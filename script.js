@@ -12,6 +12,7 @@ var professorRating = ""; // The rating of the professor
 // This is the ID that professors are listed under in the HTML. This changes depending on how the user got to the class page.
 // Initialized to MTGPAT_INSTR$ assuming the user got their by going through "My requirements" in the enroll page. See method: getUserMethod()
 var professorMethodID = "MTGPAT_INSTR$"
+
 /**
  * This listens for any change in the page and fires the listener function.
  * The timeout is so that it isn't fired several times.
@@ -32,7 +33,7 @@ function listener()
 	// run the script if it detects a class search page
 	if(getUserMethod())
 	{
-		RunScript(); 
+		RunScript();
 	}
 }
 
@@ -175,21 +176,37 @@ function getProfessorRating(professorIndex)
  */
 function addRatingToPage(professorID, ProfessorRating)
 {
-	var span = document.createElement('span');
-	var content = document.createTextNode(" " + ProfessorRating);
-	if(ProfessorRating < 3.5){
+	var span = document.createElement('span'); // Created to separate professor name and score in the HTML
 
-		span.style.color = "#8A0808"; // red = bad
+	var link = document.createElement('a');
+
+	var space = document.createTextNode(" "); // Create a space between professor name and rating
+
+	var professorRatingTextNode = document.createTextNode(ProfessorRating); // The text with the professor rating
+
+	if(ProfessorRating < 3.5)
+	{
+		link.style.color = "#8A0808"; // red = bad
 	}
 	else if (ProfessorRating >= 3.5 && ProfessorRating < 4 )
 	{
-		span.style.color = "#FFBF00"; // yellow/orange = okay
+		link.style.color = "#FFBF00"; // yellow/orange = okay
 	}
 	else if (ProfessorRating >= 4 && ProfessorRating <= 5 )
 	{
-		span.style.color = "#298A08"; // green = good
+		link.style.color = "#298A08"; // green = good
 	}
+
 	span.style.fontWeight = "bold"; // bold it
-	span.appendChild(content);
+
+	link.href = searchPageURL; // make the link
+	link.target = "_blank"; // open a new tab when clicked
+
+	// append everything together
+	link.appendChild(professorRatingTextNode);
+	span.appendChild(space);
+	span.appendChild(link);
 	professorID.appendChild(span);
+
+
 }

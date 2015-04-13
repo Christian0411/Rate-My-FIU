@@ -1,3 +1,7 @@
+/**
+ * The deprecated script file. Keeping it here for memories sake :P
+ */
+
 //console.log("Prof Script Loaded");
 
 function listener() {
