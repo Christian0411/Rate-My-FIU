@@ -16,8 +16,8 @@ chrome.runtime.onMessage.addListener(
             console.log("Professor: " + request.professor);
             callback({
                 response: xhttp.responseText,
-                currentProfessor: request.professor,
-                professorIndex: request.indexA});
+                searchPageURL: request.link,
+                professorIndex: request.index});
         };
         xhttp.onerror = function() {
             // callback to clean up the communication port.

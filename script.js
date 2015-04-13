@@ -31,6 +31,7 @@ function()
 function listener()
 {
 	// run the script if it detects a class search page
+	resetValues();
 	if(getUserMethod())
 	{
 		RunScript();
@@ -71,8 +72,9 @@ function getUserMethod()
  */
 function RunScript()
 {
-	var professorIndex = 0; // start at first professor in list
+ 	var professorIndex = 0; // start at first professor in list
 	var currentProfessor = "";
+
 	while (professorName != "undefined")
 	{
 
@@ -83,7 +85,6 @@ function RunScript()
 		{
 			getProfessorSearchPage(professorIndex, currentProfessor);
 		}
-
 		professorIndex++;
 	}
 }
@@ -119,8 +120,8 @@ function getProfessorSearchPage(professorIndex, CurrentProfessor)
 		action: 'xhttp',
 		url: 'http://www.ratemyprofessors.com/search.jsp?queryBy=teacherName&schoolName=florida%20international%20university&queryoption=HEADER&query=' + CurrentProfessor + '&facetSearch=true',
 		data: '',
-		professor: CurrentProfessor,
-		indexA: professorIndex
+		link: searchPageURL,
+		index: professorIndex
 	}, function(response) {
 		// TODO: make callback function not anonymous
 			var myHTML = response.response;
@@ -133,22 +134,22 @@ function getProfessorSearchPage(professorIndex, CurrentProfessor)
 
 			searchPageURL =  "http://www.ratemyprofessors.com" + professorClass.getAttribute('href');
 
-			getProfessorRating(response.professorIndex)
+			getProfessorRating(response.professorIndex, searchPageURL)
 		});
 }
 
 
 // This function gets the professor rating from the professor page
-function getProfessorRating(professorIndex)
+function getProfessorRating(professorIndex, SearchPageURL)
 {
-
+	
 	chrome.runtime.sendMessage({
 		method: 'POST',
 		action: 'xhttp',
 		url: searchPageURL,
 		data: '',
-		professor: "CurrentProfessor",
-		indexA: professorIndex
+		link: SearchPageURL,
+		index: professorIndex
 
 }, function(response) {
 		// TODO: make callback function not anonymous
@@ -161,21 +162,22 @@ function getProfessorRating(professorIndex)
 
 		tempDiv.childNodes;
 
+		// check if professor rating is a number. This is needed because sometimes the professor has a page, however they have no rating.
+		if(!isNaN(tempDiv.getElementsByClassName("grade")[0].innerHTML))
 		professorRating = tempDiv.getElementsByClassName("grade")[0].innerHTML;
-
-		console.log(professorRating);
 
 		var professorID = document.getElementById('ptifrmtgtframe').contentWindow.document.getElementById(professorMethodID + response.professorIndex);
 
-		addRatingToPage(professorID, professorRating);
+		addRatingToPage(professorID, professorRating, response.searchPageURL);
 	});
 }
 
 /**
  *  This function adds the rating to the class search page. Depending on the score the color of it is changed
  */
-function addRatingToPage(professorID, ProfessorRating)
+function addRatingToPage(professorID, ProfessorRating, SearchPageURL)
 {
+	console.log(SearchPageURL)
 	var span = document.createElement('span'); // Created to separate professor name and score in the HTML
 
 	var link = document.createElement('a');
@@ -199,7 +201,7 @@ function addRatingToPage(professorID, ProfessorRating)
 
 	span.style.fontWeight = "bold"; // bold it
 
-	link.href = searchPageURL; // make the link
+	link.href = SearchPageURL; // make the link
 	link.target = "_blank"; // open a new tab when clicked
 
 	// append everything together
@@ -207,6 +209,15 @@ function addRatingToPage(professorID, ProfessorRating)
 	span.appendChild(space);
 	span.appendChild(link);
 	professorID.appendChild(span);
+}
 
-
+/**
+ * This function simply resets the variables
+ */
+function resetValues()
+{
+	professorName = "";
+	ratingsPageURL = "";
+	searchPageURL = "";
+	professorRating = "";
 }
