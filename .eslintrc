@@ -1,0 +1,14 @@
+{
+    "env": {
+        "browser": true,
+        "node": true
+    },
+    "rules": {
+        "strict": "off",
+        "no-use-before-define": ["error", { "functions": true, "classes": true }]
+    },
+    "globals": {
+        "chrome": true,
+        "console":true
+    }
+}
