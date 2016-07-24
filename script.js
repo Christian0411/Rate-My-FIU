@@ -5,6 +5,7 @@
  */
 
 var professorName = ""; // The name of the professor currently being searched
+var ratingsPageURL = ""; // The url for the actual ratemyprofessors rating page
 var searchPageURL = ""; // The url for the search page at ratemyprofessors
 var professorRating = ""; // The rating of the professor
 
@@ -18,22 +19,20 @@ var professorMethodID = "MTGPAT_INSTR$";
  */
 var timeout = null;
 document.addEventListener("DOMSubtreeModified",
-                          function () {
-        if (timeout) {
-            clearTimeout(timeout);
-        }
-        timeout = setTimeout(listener, 1000);
-    }, false);
+	function() {
+		if (timeout) clearTimeout(timeout);
+		timeout = setTimeout(listener, 1000);
+	}, false);
 
 /**
  * This method is fired whenever there is a DOM modification on the current page
  */
 function listener() {
-    // run the script if it detects a class search page
-    resetValues();
-    if (getUserMethod()) {
-        runScript();
-    }
+	// run the script if it detects a class search page
+	resetValues();
+	if (getUserMethod()) {
+		RunScript();
+	}
 }
 
 /**
@@ -43,42 +42,46 @@ function listener() {
  */
 function getUserMethod() {
 
-    try {
-        var classSearchMethod = document.getElementById("ptifrmtgtframe").contentWindow.document.getElementById("MTG_INSTR$" + "0").innerHTML;
-        if (classSearchMethod !== undefined) {
-            professorMethodID = "MTG_INSTR$"; // User went through the class search page
-            return true;
-        }
-    } catch (classSearchErr) {}
 
-    try {
-        var myRequirementsMethod = document.getElementById("ptifrmtgtframe").contentWindow.document.getElementById("MTGPAT_INSTR$" + "0").innerHTML;
-        if (myRequirementsMethod !== undefined) {
-            professorMethodID = "MTGPAT_INSTR$"; // User went through the my requirements page
-            return true;
-        }
-    } catch (myRequirementsErr) {}
+	try {
+		var classSearchMethod = document.getElementById('ptifrmtgtframe').contentWindow.document.getElementById("MTG_INSTR$" + 0).innerHTML;
 
-    return false;
+		if (classSearchMethod !== undefined) {
+			professorMethodID = "MTG_INSTR$"; // User went through the class search page
+			return true;
+		}
+
+	} catch (classSearchErr) {}
+
+	try {
+		var myRequirementsMethod = document.getElementById('ptifrmtgtframe').contentWindow.document.getElementById("MTGPAT_INSTR$" + 0).innerHTML;
+
+		if (myRequirementsMethod !== undefined) {
+			professorMethodID = "MTGPAT_INSTR$"; // User went through the my requirements page
+			return true;
+		}
+	} catch (myRequirementsErr) {}
+
+	return false;
 }
 
 /**
  * This is the main function of this script.
  */
-function runScript() {
-    var professorIndex = 0; // start at first professor in list
-    var currentProfessor = "";
+function RunScript() {
+	var professorIndex = 0; // start at first professor in list
+	var currentProfessor = "";
 
-    while (professorName !== "undefined") {
+	while (professorName !== "undefined") {
 
-        getProfessorName(professorIndex);
-        currentProfessor = professorName;
-        // only get the professor search page if its not undefined or staff
-        if (professorName !== "Staff" && professorName !== "undefined") {
-            getProfessorSearchPage(professorIndex, currentProfessor);
-        }
-        professorIndex++;
-    }
+		getProfessorName(professorIndex);
+		currentProfessor = professorName;
+		// only get the professor search page if its not undefined or staff
+		if (professorName !== "Staff" && professorName !== "undefined") {
+			getProfessorSearchPage(professorIndex, currentProfessor);
+		}
+		professorIndex++;
+	}
 }
 
 
@@ -86,114 +89,115 @@ function runScript() {
  * This function tries to get the professor name from the class search page in fiu.edu
  */
 function getProfessorName(indexOfProfessor) {
-    try {
-        professorName = document.getElementById("ptifrmtgtframe").contentWindow.document.getElementById(professorMethodID + indexOfProfessor).innerHTML;
-        return professorName;
-    } catch (err) {
-        professorName = "undefined";
-    }
+	try {
+		professorName = document.getElementById('ptifrmtgtframe').contentWindow.document.getElementById(professorMethodID + indexOfProfessor).innerHTML;
+		return professorName;
+	} catch (err) {
+		professorName = "undefined";
+	}
 }
-
 
 /**
  * This function sends a message to the background page (see background.js), to retrieve the professor search page from ratemyprofessor.com
  */
 function getProfessorSearchPage(professorIndex, CurrentProfessor) {
-    // send message to background.js to avoid cross-domain policy
-    //console.log("@getProfessorSearchPage Parameters: " + CurrentProfessor + " Index: " + professorIndex);
+	// send message to background.js to avoid cross-domain policy
+	//console.log("@getProfessorSearchPage Parameters: " + CurrentProfessor + " Index: " + professorIndex);
 
-    chrome.runtime.sendMessage({
-        method: "POST",
-        action: "xhttp",
-        url: "http://www.ratemyprofessors.com/search.jsp?queryBy=teacherName&schoolName=florida%20international%20university&queryoption=HEADER&query=" + CurrentProfessor + "&facetSearch=true",
-        data: "",
-        link: searchPageURL,
-        index: professorIndex
-    }, function (response) {
-        // TODO: make callback function not anonymous
-        var myHTML = response.response;
+	chrome.runtime.sendMessage({
+		method: 'POST',
+		action: 'xhttp',
+		url: 'http://www.ratemyprofessors.com/search.jsp?queryBy=teacherName&schoolName=florida%20international%20university&queryoption=HEADER&query=' + CurrentProfessor + '&facetSearch=true',
+		data: '',
+		link: searchPageURL,
+		index: professorIndex
+	}, function(response) {
+		// TODO: make callback function not anonymous
+		var myHTML = response.response;
 
-        var tempDiv = document.createElement("div");
+		var tempDiv = document.createElement('div');
 
-        tempDiv.innerHTML = myHTML.replace(/<script(.|\s)*?\/script>/g, "");
+		tempDiv.innerHTML = myHTML.replace(/<script(.|\s)*?\/script>/g, '');
 
-        var professorClass = tempDiv.getElementsByClassName("listing PROFESSOR")[0].getElementsByTagName("a")[0]; // etc. etc.
+		var professorClass = tempDiv.getElementsByClassName("listing PROFESSOR")[0].getElementsByTagName('a')[0]; // etc. etc.
 
-        searchPageURL = "http://www.ratemyprofessors.com" + professorClass.getAttribute("href");
+		searchPageURL = "http://www.ratemyprofessors.com" + professorClass.getAttribute('href');
 
-        getProfessorRating(response.professorIndex, searchPageURL);
-    });
+		getProfessorRating(response.professorIndex, searchPageURL);
+	});
 }
 
 
 // This function gets the professor rating from the professor page
 function getProfessorRating(professorIndex, SearchPageURL) {
 
-    chrome.runtime.sendMessage({
-        method: "POST",
-        action: "xhttp",
-        url: searchPageURL,
-        data: "",
-        link: SearchPageURL,
-        index: professorIndex
+	chrome.runtime.sendMessage({
+		method: 'POST',
+		action: 'xhttp',
+		url: searchPageURL,
+		data: '',
+		link: SearchPageURL,
+		index: professorIndex
 
-    }, function (response) {
-        // TODO: make callback function not anonymous
-        //console.log("Response from Professor Page");
-        var myHTML = response.response;
-        var tempDiv = document.createElement("div");
+	}, function(response) {
+		// TODO: make callback function not anonymous
+		//console.log('Response from Professor Page');
+		var myHTML = response.response;
 
-        tempDiv.innerHTML = myHTML.replace(/<script(.|\s)*?\/script>/g, "");
+		var tempDiv = document.createElement('div');
 
-        // check if professor rating is a number. This is needed because sometimes the professor has a page, however they have no rating.
-        if (!isNaN(tempDiv.getElementsByClassName("grade")[0].innerHTML)) {
-            professorRating = tempDiv.getElementsByClassName("grade")[0].innerHTML;
-        }
+		tempDiv.innerHTML = myHTML.replace(/<script(.|\s)*?\/script>/g, '');
 
 
-        var professorID = document.getElementById("ptifrmtgtframe").contentWindow.document.getElementById(professorMethodID + response.professorIndex);
+		// check if professor rating is a number. This is needed because sometimes the professor has a page, however they have no rating.
+		if (!isNaN(tempDiv.getElementsByClassName("grade")[0].innerHTML))
+			professorRating = tempDiv.getElementsByClassName("grade")[0].innerHTML;
 
-        addRatingToPage(professorID, professorRating, response.searchPageURL);
-    });
+		var professorID = document.getElementById('ptifrmtgtframe').contentWindow.document.getElementById(professorMethodID + response.professorIndex);
+
+		addRatingToPage(professorID, professorRating, response.searchPageURL);
+	});
 }
 
 /**
  *  This function adds the rating to the class search page. Depending on the score the color of it is changed
  */
 function addRatingToPage(professorID, ProfessorRating, SearchPageURL) {
+	console.log(SearchPageURL);
+	var span = document.createElement('span'); // Created to separate professor name and score in the HTML
 
-    console.log(SearchPageURL);
+	var link = document.createElement('a');
 
-    var span = document.createElement("span"), // Created to separate professor name and score in the HTML
-        link = document.createElement("a"),
-        space = document.createTextNode(" "), // Create a space between professor name and rating
-        professorRatingTextNode = document.createTextNode(ProfessorRating); // The text with the professor rating
+	var space = document.createTextNode(" "); // Create a space between professor name and rating
 
-    if (ProfessorRating < 3.5) {
-        link.style.color = "#8A0808"; // red = bad
-    } else if (ProfessorRating >= 3.5 && ProfessorRating < 4) {
-        link.style.color = "#FFBF00"; // yellow/orange = okay
-    } else if (ProfessorRating >= 4 && ProfessorRating <= 5) {
-        link.style.color = "#298A08"; // green = good
-    }
+	var professorRatingTextNode = document.createTextNode(ProfessorRating); // The text with the professor rating
 
-    span.style.fontWeight = "bold"; // bold it
+	if (ProfessorRating < 3.5) {
+		link.style.color = "#8A0808"; // red = bad
+	} else if (ProfessorRating >= 3.5 && ProfessorRating < 4) {
+		link.style.color = "#FFBF00"; // yellow/orange = okay
+	} else if (ProfessorRating >= 4 && ProfessorRating <= 5) {
+		link.style.color = "#298A08"; // green = good
+	}
 
-    link.href = SearchPageURL; // make the link
-    link.target = "_blank"; // open a new tab when clicked
+	span.style.fontWeight = "bold"; // bold it
 
-    // append everything together
-    link.appendChild(professorRatingTextNode);
-    span.appendChild(space);
-    span.appendChild(link);
-    professorID.appendChild(span);
+	link.href = SearchPageURL; // make the link
+	link.target = "_blank"; // open a new tab when clicked
+
+	// append everything together
+	link.appendChild(professorRatingTextNode);
+	span.appendChild(space);
+	span.appendChild(link);
+	professorID.appendChild(span);
 }
 
 /**
  * This function simply resets the variables
  */
 function resetValues() {
-    professorName = "";
-    searchPageURL = "";
-    professorRating = "";
+	professorName = "";
+	ratingsPageURL = "";
+	searchPageURL = "";
+	professorRating = "";
 }
