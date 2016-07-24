@@ -4,6 +4,8 @@
  * Created by: Christian Canizares - ccani008@fiu.edu
  */
 
+const RMP_DOMAIN = "http://www.ratemyprofessors.com";
+
 var professorName = ""; // The name of the professor currently being searched
 var ratingsPageURL = ""; // The url for the actual ratemyprofessors rating page
 var searchPageURL = ""; // The url for the search page at ratemyprofessors
@@ -25,10 +27,10 @@ document.addEventListener("DOMSubtreeModified",
 	}, false);
 
 /**
- * This method is fired whenever there is a DOM modification on the current page
+ * This method is fired whenever there is a DOM modification on the current page.
+ * Run the script if it detects a class search page
  */
 function listener() {
-	// run the script if it detects a class search page
 	resetValues();
 	if (getUserMethod()) {
 		RunScript();
@@ -69,6 +71,7 @@ function getUserMethod() {
  * This is the main function of this script.
  */
 function RunScript() {
+	const schoolName = encodeURI("florida international university");
 	var professorIndex = 0; // start at first professor in list
 	var currentProfessor = "";
 
@@ -78,7 +81,7 @@ function RunScript() {
 		currentProfessor = professorName;
 		// only get the professor search page if its not undefined or staff
 		if (professorName !== "Staff" && professorName !== "undefined") {
-			getProfessorSearchPage(professorIndex, currentProfessor);
+			getProfessorSearchPage(professorIndex, currentProfessor, schoolName);
 		}
 		professorIndex++;
 	}
@@ -100,38 +103,44 @@ function getProfessorName(indexOfProfessor) {
 /**
  * This function sends a message to the background page (see background.js), to retrieve the professor search page from ratemyprofessor.com
  */
-function getProfessorSearchPage(professorIndex, CurrentProfessor) {
-	// send message to background.js to avoid cross-domain policy
-	//console.log("@getProfessorSearchPage Parameters: " + CurrentProfessor + " Index: " + professorIndex);
+function getProfessorSearchPage(professorIndex, CurrentProfessor, schoolName) {
 
-	chrome.runtime.sendMessage({
+	var message = {
 		method: 'POST',
 		action: 'xhttp',
-		url: 'http://www.ratemyprofessors.com/search.jsp?queryBy=teacherName&schoolName=florida%20international%20university&queryoption=HEADER&query=' + CurrentProfessor + '&facetSearch=true',
+		url: RMP_DOMAIN + '/search.jsp?queryBy=teacherName&schoolName=' + schoolName +'&queryoption=HEADER&query=' + CurrentProfessor + '&facetSearch=true',
 		data: '',
 		link: searchPageURL,
 		index: professorIndex
-	}, function(response) {
-		// TODO: make callback function not anonymous
-		var myHTML = response.response;
+	};
 
-		var tempDiv = document.createElement('div');
+	chrome.runtime.sendMessage(message, getProfessorSearchPageCallback);
+}
 
-		tempDiv.innerHTML = myHTML.replace(/<script(.|\s)*?\/script>/g, '');
 
-		var professorClass = tempDiv.getElementsByClassName("listing PROFESSOR")[0].getElementsByTagName('a')[0]; // etc. etc.
 
-		searchPageURL = "http://www.ratemyprofessors.com" + professorClass.getAttribute('href');
+function getProfessorSearchPageCallback(response) {
 
-		getProfessorRating(response.professorIndex, searchPageURL);
-	});
+	var myHTML = response.response;
+
+	var resultsTest = myHTML.indexOf("Your search didn't return any results.");
+
+
+	var tempDiv = document.createElement('div');
+	tempDiv.innerHTML = myHTML.replace(/<script(.|\s)*?\/script>/g, '');
+	var professorClass = tempDiv.getElementsByClassName("listing PROFESSOR")[0].getElementsByTagName('a')[0]; // etc. etc.
+
+	searchPageURL = RMP_DOMAIN + professorClass.getAttribute('href');
+
+	getProfessorRating(response.professorIndex, searchPageURL);
+
 }
 
 
 // This function gets the professor rating from the professor page
 function getProfessorRating(professorIndex, SearchPageURL) {
 
-	chrome.runtime.sendMessage({
+	var message = {
 		method: 'POST',
 		action: 'xhttp',
 		url: searchPageURL,
@@ -139,25 +148,29 @@ function getProfessorRating(professorIndex, SearchPageURL) {
 		link: SearchPageURL,
 		index: professorIndex
 
-	}, function(response) {
-		// TODO: make callback function not anonymous
-		//console.log('Response from Professor Page');
-		var myHTML = response.response;
+	};
 
-		var tempDiv = document.createElement('div');
-
-		tempDiv.innerHTML = myHTML.replace(/<script(.|\s)*?\/script>/g, '');
-
-
-		// check if professor rating is a number. This is needed because sometimes the professor has a page, however they have no rating.
-		if (!isNaN(tempDiv.getElementsByClassName("grade")[0].innerHTML))
-			professorRating = tempDiv.getElementsByClassName("grade")[0].innerHTML;
-
-		var professorID = document.getElementById('ptifrmtgtframe').contentWindow.document.getElementById(professorMethodID + response.professorIndex);
-
-		addRatingToPage(professorID, professorRating, response.searchPageURL);
-	});
+	chrome.runtime.sendMessage(message, getProfessorRatingCallback);
 }
+
+function getProfessorRatingCallback(response) {
+
+	var myHTML = response.response;
+
+	var tempDiv = document.createElement('div');
+
+	tempDiv.innerHTML = myHTML.replace(/<script(.|\s)*?\/script>/g, '');
+
+
+	// check if professor rating is a number. This is needed because sometimes the professor has a page, however they have no rating.
+	if (!isNaN(tempDiv.getElementsByClassName("grade")[0].innerHTML))
+		professorRating = tempDiv.getElementsByClassName("grade")[0].innerHTML;
+
+	var professorID = document.getElementById('ptifrmtgtframe').contentWindow.document.getElementById(professorMethodID + response.professorIndex);
+
+	addRatingToPage(professorID, professorRating, response.searchPageURL);
+}
+
 
 /**
  *  This function adds the rating to the class search page. Depending on the score the color of it is changed
@@ -200,4 +213,21 @@ function resetValues() {
 	ratingsPageURL = "";
 	searchPageURL = "";
 	professorRating = "";
+}
+
+
+/**
+ * @param  {[type]}
+ * @return {[type]}
+ */
+function getLastName(fullName) {
+	var comp = fullName.split(" ");
+
+	if (comp.length == 1) {
+		return comp[0]; //Case for Doe
+	} else if (comp.length == 2) {
+		return comp[1]; //case for John Doe
+	} else if (comp.length == 3) {
+		return comp[2]; //case for John M. Doe
+	}
 }
