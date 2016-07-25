@@ -45,7 +45,7 @@ function listener() {
  */
 function getUserMethod() {
 
-
+	var profs = document.getElementById("ptifrmtgtframe").contentWindow.document.getElementsByClassName("PSLONGEDITBOX");
 	try {
 		var classSearchMethod = document.getElementById('ptifrmtgtframe').contentWindow.document.getElementById("MTG_INSTR$" + 0).innerHTML;
 
@@ -76,7 +76,9 @@ function getUserMethod() {
  */
 function RunScript() {
 
-	professors.exits = function (name)	{ return this.hasOwnProperty(name);}
+	professors.exits = function(name) {
+		return this.hasOwnProperty(name);
+	};
 
 	var schoolName = encodeURI("florida international university");
 
@@ -88,21 +90,45 @@ function RunScript() {
 		getProfessorName(professorIndex);
 		currentProfessor = professorName;
 
-		if (professorName !== "Staff" && professorName !== "undefined") {
+		if (isValidName(professorName)) {
 			getProfessorSearchPage(professorIndex, currentProfessor, schoolName);
+		} else {
+			//TODO: Give a rating of N/A.
 		}
+
 		professorIndex++;
 	}
 }
 
 
 /**
+ * Function to determine if a professor is valid and should be searched.
+ * Some denominations and tittles are excluded.
+ * 
+ * @param  String
+ * @return String
+ */
+function isValidName(name) {
+
+	return (professorName !== "Staff" &&
+		professorName !== "undefined" &&
+		professorName !== "TBA .");
+}
+
+
+
+/**
  * This function tries to get the professor name from the class search page in fiu.edu
+ * Some classes have more than one professor; in which case we will take only the first
+ * one.
  */
 function getProfessorName(indexOfProfessor) {
 	try {
 		professorName = document.getElementById('ptifrmtgtframe').contentWindow.document.getElementById(professorMethodID + indexOfProfessor).innerHTML;
+
+		professorName = professorName.split(",")[0];
 		return professorName;
+
 	} catch (err) {
 		professorName = "undefined";
 	}
@@ -117,7 +143,7 @@ function getProfessorSearchPage(professorIndex, CurrentProfessor, schoolName) {
 	var message = {
 		method: 'POST',
 		action: 'xhttp',
-		url: 'http://www.ratemyprofessors.com/search.jsp?queryBy=teacherName&schoolName=' + schoolName +'&queryoption=HEADER&query=' + CurrentProfessor + '&facetSearch=true',
+		url: 'http://www.ratemyprofessors.com/search.jsp?queryBy=teacherName&schoolName=' + schoolName + '&queryoption=HEADER&query=' + CurrentProfessor + '&facetSearch=true',
 		data: '',
 		link: searchPageURL,
 		index: professorIndex
@@ -132,7 +158,7 @@ function getProfessorSearchPageCallback(response) {
 
 	var responseText = response.response;
 
-	var resultsTest = myHTML.indexOf("Your search didn't return any results.");
+	var resultsTest = responseText.indexOf("Your search didn't return any results.");
 
 	if (resultsTest == -1) {
 		console.log("I cannot find the professor");
@@ -187,12 +213,12 @@ function getProfessorRatingCallback(response) {
  * Function to convert from text to a real DOM
  * 
  * @param  String
- * @return DOMSection
+ * @return DOMObject
  */
 function getDOMFromString(textHTML) {
 
 	var tempDiv = document.createElement("div");
-	tempDiv.innerHTML = textHTML.replace(/<script(.|\s)*?\/script>/g, '');;
+	tempDiv.innerHTML = textHTML.replace(/<script(.|\s)*?\/script>/g, '');
 
 	return tempDiv;
 }
@@ -203,7 +229,7 @@ function getDOMFromString(textHTML) {
  */
 function addRatingToPage(professorID, ProfessorRating, SearchPageURL) {
 
- 	var span = document.createElement('span'); // Created to separate professor name and score in the HTML
+	var span = document.createElement('span'); // Created to separate professor name and score in the HTML
 
 	var link = document.createElement('a');
 
@@ -211,16 +237,11 @@ function addRatingToPage(professorID, ProfessorRating, SearchPageURL) {
 
 	var professorRatingTextNode = document.createTextNode(ProfessorRating); // The text with the professor rating
 
-	if(ProfessorRating < 3.5)
-	{
+	if (ProfessorRating < 3.5) {
 		link.style.color = "#8A0808"; // red = bad
-	}
-	else if (ProfessorRating >= 3.5 && ProfessorRating < 4 )
-	{
+	} else if (ProfessorRating >= 3.5 && ProfessorRating < 4) {
 		link.style.color = "#FFBF00"; // yellow/orange = okay
-	}
-	else if (ProfessorRating >= 4 && ProfessorRating <= 5 )
-	{
+	} else if (ProfessorRating >= 4 && ProfessorRating <= 5) {
 		link.style.color = "#298A08"; // green = good
 	}
 
