@@ -1,9 +1,15 @@
 /**
+ * Rate My FIU - Chrome Extension
+ * 
  * The background page for the Rate My Fiu extension.
+ * 
  * Created by: Christian Canizares - ccani008@fiu.edu
+ * Modified by: Alfredo Lopez - alope517@fiu.edu
  */
 
-//This recieves the message from the main script file
+/**
+ * This recieves the message from the main script file
+ */
 chrome.runtime.onMessage.addListener(
     function(request, sender, callback) {
         if (request.action === "xhttp") {

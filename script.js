@@ -1,7 +1,10 @@
 /**
  * Rate My FIU - Chrome Extension
+ * 
  * This is the main file for the extension.
+ * 
  * Created by: Christian Canizares - ccani008@fiu.edu
+ * Modified by: Alfredo Lopez - alope517@fiu.edu
  */
 
 /* global chrome */
@@ -9,15 +12,14 @@
 /*eslint-env browser*/
 /*eslint no-use-before-define: ["error", { "functions": false }]*/
 
-
 var professorName = ""; // The name of the professor currently being searched
 var searchPageURL = ""; // The url for the search page at ratemyprofessors
 var professorRating = ""; // The rating of the professor
 
 
 
-// Object to hol all the professors already searched so we do not have to make
-// so many requests.
+// Object to hold all the professors already searched so we do not have to make
+// so many requests. Future implementation.
 var professors = {};
 
 
@@ -189,7 +191,11 @@ function getProfessorSearchPage(professorIndex, currentProfessorNames, schoolNam
     chrome.runtime.sendMessage(message, getProfessorSearchPageCallback);
 }
 
-
+/**
+ * Function to process the reponse when it finishes.
+ * 
+ * @param  object response The response object
+ */
 function getProfessorSearchPageCallback(response) {
 
     var responseText = response.response;
@@ -245,16 +251,20 @@ function getProfessorRating(professorIndex, SearchPageURL) {
     chrome.runtime.sendMessage(message, getProfessorRatingCallback);
 }
 
+/**
+ * Function to process the reponse when it finishes.
+ *
+ * If professor rating is a number. This is needed because sometimes the professor
+ * has a page, however they have no rating.
+ * 
+ * @param  object response The response object
+ */
 function getProfessorRatingCallback(response) {
 
     var responseText = response.response;
-
     var htmlDoc = getDOMFromString(responseText);
 
-
-    // check if professor rating is a number. This is needed because sometimes the professor has a page, however they have no rating.
     if (!isNaN(htmlDoc.getElementsByClassName("grade")[0].innerHTML)) {
-
         professorRating = htmlDoc.getElementsByClassName("grade")[0].innerHTML;
     }
 
@@ -267,8 +277,8 @@ function getProfessorRatingCallback(response) {
 /**
  * Function to convert from text to a real DOM
  *
- * @param  String
- * @return DOMObject
+ * @param  string
+ * @return object
  */
 function getDOMFromString(textHTML) {
 
@@ -285,11 +295,8 @@ function getDOMFromString(textHTML) {
 function addRatingToPage(professorID, ProfessorRating, SearchPageURL) {
 
     var span = document.createElement("span"); // Created to separate professor name and score in the HTML
-
     var link = document.createElement("a");
-
     var space = document.createTextNode(" "); // Create a space between professor name and rating
-
     var professorRatingTextNode = document.createTextNode(ProfessorRating); // The text with the professor rating
 
     if (ProfessorRating < 3.5) {
