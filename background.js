@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener(
                     response: xhttp.responseText,
                     searchPageURL: request.link,
                     professorIndex: request.index,
-                    professorName: request.professor
+                    professorNames: request.professorNames
                 });
             };
             xhttp.onerror = function() {

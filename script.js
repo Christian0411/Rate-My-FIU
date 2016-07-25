@@ -8,15 +8,28 @@ var ratingsPageURL = ""; // The url for the actual ratemyprofessors rating page
 var searchPageURL = ""; // The url for the search page at ratemyprofessors
 var professorRating = ""; // The rating of the professor
 
+
+
 // Object to hol all the professors already searched so we do not have to make
 // so many requests.
 var professors = {};
 
-var firstTry;
 
-// This is the ID that professors are listed under in the HTML. This changes depending on how the user got to the class page.
-// Initialized to MTGPAT_INSTR$ assuming the user got their by going through "My requirements" in the enroll page. See method: getUserMethod()
+/**
+ * This is a global variable to determine if a new HTTP call must be made with
+ * the last name of the professor because the first one failed to return any 
+ * results.
+ */
+var triesCount;
+
+/**
+ * This is the ID that professors are listed under in the HTML. This changes 
+ * depending on how the user got to the class page.
+ * Initialized to MTGPAT_INSTR$ assuming the user got their by going through 
+ * "My requirements" in the enroll page. See method: getUserMethod()
+ */
 var professorMethodID = "MTGPAT_INSTR$";
+
 
 /**
  * This listens for any change in the page and fires the listener function.
@@ -28,6 +41,7 @@ document.addEventListener("DOMSubtreeModified",
 		if (timeout) clearTimeout(timeout);
 		timeout = setTimeout(listener, 1000);
 	}, false);
+
 
 /**
  * This method is fired whenever there is a DOM modification on the current page.
@@ -41,8 +55,9 @@ function listener() {
 }
 
 /**
- * This method finds out which method the user took when getting to the enroll page. Depending on which method (through class search or my requirements)
- * the ID for the professor name changes.
+ * This method finds out which method the user took when getting to the enroll page. 
+ * Depending on which method (through class search or my requirements) the ID for 
+ * the professor name changes.
  * Returns true whenever the user is at a class search page
  */
 function getUserMethod() {
@@ -84,17 +99,17 @@ function RunScript() {
 	var schoolName = encodeURI("florida international university");
 
 	var professorIndex = 0;
-	var currentProfessor = "";
+	var currentProfessorNames;
 
 	while (professorName !== "undefined") {
 
-		getProfessorName(professorIndex);
-		currentProfessor = professorName;
+		currentProfessorNames = getProfessorNames(professorIndex);
 
 		if (isValidName(professorName)) {
-			firstTry = true;
-			getProfessorSearchPage(professorIndex, currentProfessor, schoolName);
+			triesCount = 0;
+			getProfessorSearchPage(professorIndex, currentProfessorNames, schoolName);
 		} else {
+			//TODO: Future Implementation.
 			professors.professorName = {};
 			professors.professorName.professorRating = "N/A";
 		}
@@ -125,12 +140,19 @@ function isValidName(name) {
  * Some classes have more than one professor; in which case we will take only the first
  * one.
  */
-function getProfessorName(indexOfProfessor) {
+function getProfessorNames(indexOfProfessor) {
 	try {
-		professorName = document.getElementById('ptifrmtgtframe').contentWindow.document.getElementById(professorMethodID + indexOfProfessor).innerHTML;
+		names = document.getElementById('ptifrmtgtframe').contentWindow.document.getElementById(professorMethodID + indexOfProfessor).innerHTML;
 
-		professorName = professorName.split(",")[0];
-		return professorName;
+		names = names.split(",");
+
+		// Add last names to the list.
+		var maxNames = names.length;
+		for (var i = 0; i < maxNames; i++) {
+			var lastName = getLastName(names[i]);
+			names.push(lastName);
+		}
+		return names;
 
 	} catch (err) {
 		professorName = "undefined";
@@ -141,23 +163,23 @@ function getProfessorName(indexOfProfessor) {
  * This function sends a message to the background page (see background.js), 
  * to retrieve the professor search page from ratemyprofessor.com
  */
-function getProfessorSearchPage(professorIndex, CurrentProfessor, schoolName) {
+function getProfessorSearchPage(professorIndex, currentProfessorNames, schoolName) {
 
 	var message = {
 		method: 'POST',
 		action: 'xhttp',
-		url: 'http://www.ratemyprofessors.com/search.jsp?queryBy=teacherName&schoolName=' + schoolName + '&queryoption=HEADER&query=' + CurrentProfessor + '&facetSearch=true',
+		url: 'http://www.ratemyprofessors.com/search.jsp?queryBy=teacherName&schoolName=' + schoolName + '&queryoption=HEADER&query=' + currentProfessorNames[0] + '&facetSearch=true',
 		data: '',
 		link: searchPageURL,
 		index: professorIndex,
-		professor: CurrentProfessor
+		professorNames: currentProfessorNames
 	};
 
 	chrome.runtime.sendMessage(message, getProfessorSearchPageCallback);
 }
 
 
-function getProfessorSearchPageCallback(response, CurrentProfessor) {
+function getProfessorSearchPageCallback(response) {
 
 	var responseText = response.response;
 
@@ -173,14 +195,11 @@ function getProfessorSearchPageCallback(response, CurrentProfessor) {
 
 		getProfessorRating(response.professorIndex, searchPageURL);
 
-	} else if(firstTry) {
+	} else if(triesCount < response.professorNames.length) {
 
-		firstTry=false;
-		professorName = getLastName(response.professorName);
-		getProfessorSearchPage(response.professorIndex, professorName, encodeURI("florida international university"));
-		console.log ("I will try again for " + professorName + " with :" + getLastName(professorName));
+		getProfessorSearchPage(response.professorIndex, response.professorNames[triesCount], encodeURI("florida international university"));
+		triesCount++;
 	}
-
 }
 
 
@@ -197,7 +216,9 @@ function foundResult(text) {
 }
 
 
-// This function gets the professor rating from the professor page
+/**
+ * This function gets the professor rating from the professor page
+ */
 function getProfessorRating(professorIndex, SearchPageURL) {
 
 	var message = {
