@@ -12,6 +12,8 @@ var professorRating = ""; // The rating of the professor
 // so many requests.
 var professors = {};
 
+var firstTry;
+
 // This is the ID that professors are listed under in the HTML. This changes depending on how the user got to the class page.
 // Initialized to MTGPAT_INSTR$ assuming the user got their by going through "My requirements" in the enroll page. See method: getUserMethod()
 var professorMethodID = "MTGPAT_INSTR$";
@@ -45,7 +47,6 @@ function listener() {
  */
 function getUserMethod() {
 
-	var profs = document.getElementById("ptifrmtgtframe").contentWindow.document.getElementsByClassName("PSLONGEDITBOX");
 	try {
 		var classSearchMethod = document.getElementById('ptifrmtgtframe').contentWindow.document.getElementById("MTG_INSTR$" + 0).innerHTML;
 
@@ -91,9 +92,11 @@ function RunScript() {
 		currentProfessor = professorName;
 
 		if (isValidName(professorName)) {
+			firstTry = true;
 			getProfessorSearchPage(professorIndex, currentProfessor, schoolName);
 		} else {
-			//TODO: Give a rating of N/A.
+			professors.professorName = {};
+			professors.professorName.professorRating = "N/A";
 		}
 
 		professorIndex++;
@@ -146,31 +149,51 @@ function getProfessorSearchPage(professorIndex, CurrentProfessor, schoolName) {
 		url: 'http://www.ratemyprofessors.com/search.jsp?queryBy=teacherName&schoolName=' + schoolName + '&queryoption=HEADER&query=' + CurrentProfessor + '&facetSearch=true',
 		data: '',
 		link: searchPageURL,
-		index: professorIndex
+		index: professorIndex,
+		professor: CurrentProfessor
 	};
 
 	chrome.runtime.sendMessage(message, getProfessorSearchPageCallback);
 }
 
 
-
-function getProfessorSearchPageCallback(response) {
+function getProfessorSearchPageCallback(response, CurrentProfessor) {
 
 	var responseText = response.response;
 
 	var resultsTest = responseText.indexOf("Your search didn't return any results.");
 
-	if (resultsTest == -1) {
-		console.log("I cannot find the professor");
+
+	if (foundResult(responseText)) {
+
+		var htmlDoc = getDOMFromString(responseText);
+
+		var professorClass = htmlDoc.getElementsByClassName("listing PROFESSOR")[0].getElementsByTagName('a')[0];
+		searchPageURL = "http://www.ratemyprofessors.com" + professorClass.getAttribute('href');
+
+		getProfessorRating(response.professorIndex, searchPageURL);
+
+	} else if(firstTry) {
+
+		firstTry=false;
+		professorName = getLastName(response.professorName);
+		getProfessorSearchPage(response.professorIndex, professorName, encodeURI("florida international university"));
+		console.log ("I will try again for " + professorName + " with :" + getLastName(professorName));
 	}
 
-	var htmlDoc = getDOMFromString(responseText);
+}
 
-	var professorClass = htmlDoc.getElementsByClassName("listing PROFESSOR")[0].getElementsByTagName('a')[0];
-	searchPageURL = "http://www.ratemyprofessors.com" + professorClass.getAttribute('href');
 
-	getProfessorRating(response.professorIndex, searchPageURL);
-
+/**
+ * Determines if the response returned a result; otherwise the response will
+ * contain the specified string bellow:
+ * "Your search didn't return any results."
+ * 
+ * @param  string text The test to be checked
+ * @return boolean     If there is a result true; otherwise false.
+ */
+function foundResult(text) {
+	return (text.indexOf("Your search didn't return any results.") == -1);
 }
 
 
