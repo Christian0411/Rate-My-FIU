@@ -27,8 +27,8 @@ chrome.runtime.onMessage.addListener(
             };
             console.log("Attempting to open URL: " + request.url);
             xhttp.open(method, request.url, true);
-            if (method == 'POST') {
-                xhttp.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            if (method == "POST") {
+                xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             }
             xhttp.send(request.data);
             return true; // prevents the callback from being called too early on return
