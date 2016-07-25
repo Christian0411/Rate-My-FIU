@@ -7,6 +7,7 @@
 /* global chrome */
 /*eslint no-undef: "error"*/
 /*eslint-env browser*/
+/*eslint no-use-before-define: ["error", { "functions": false }]*/
 
 
 var professorName = ""; // The name of the professor currently being searched

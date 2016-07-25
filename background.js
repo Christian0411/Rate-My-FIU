@@ -6,7 +6,7 @@
 //This recieves the message from the main script file
 chrome.runtime.onMessage.addListener(
     function(request, sender, callback) {
-        if (request.action == "xhttp") {
+        if (request.action === "xhttp") {
             var xhttp = new XMLHttpRequest();
             var method = request.method ? request.method.toUpperCase() : 'GET';
 
@@ -27,7 +27,7 @@ chrome.runtime.onMessage.addListener(
             };
             console.log("Attempting to open URL: " + request.url);
             xhttp.open(method, request.url, true);
-            if (method == "POST") {
+            if (method === "POST") {
                 xhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             }
             xhttp.send(request.data);
